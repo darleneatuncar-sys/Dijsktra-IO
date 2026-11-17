@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Dijkstra</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, Arial, Helvetica, sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    line-height: 1.5;
+    padding: 20px;
+  }
+  header { max-width: 1300px; margin: 0 auto 18px; }
+  h1 { margin: 0 0 4px; font-size: 26px; color: #1e3a8a; }
+  header p { margin: 0; color: #64748b; font-size: 15px; }
+
+  .layout {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #1e3a8a;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .card h3 { margin: 16px 0 8px; font-size: 14px; color: #334155; }
+  .hint { font-size: 12.5px; color: #64748b; margin: 6px 0 0; }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin: 10px 0 4px; }
+  input[type=text], input[type=number], select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    color: #1e293b;
+    font-family: inherit;
+  }
+  input:focus, select:focus { outline: 2px solid #bfdbfe; border-color: #2563eb; }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 9px 14px;
+    cursor: pointer;
+    background: #2563eb;
+    color: #fff;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #fff; color: #2563eb; border-color: #93c5fd; }
+  button.secondary:hover { background: #eff6ff; }
+  button.danger { background: #fff; color: #b91c1c; border-color: #fecaca; padding: 6px 10px; font-size: 13px; }
+  button.danger:hover { background: #fef2f2; }
+  button.small { padding: 5px 9px; font-size: 12.5px; }
+
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  .row > * { flex: 1; }
+  .row > button { flex: 0 0 auto; }
+  .buttons-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .buttons-bar button { flex: 1; min-width: 110px; }
+
+  .msg { font-size: 13px; margin-top: 8px; min-height: 0; }
+  .msg.error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 7px 10px; border-radius: 8px; }
+  .msg.ok { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 7px 10px; border-radius: 8px; }
+  .msg.info { color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; padding: 7px 10px; border-radius: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
+    border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13.5px; font-weight: 600;
+  }
+  .chip button {
+    background: transparent; border: none; color: #1e40af; padding: 0 4px; font-size: 15px;
+    line-height: 1; font-weight: 700; cursor: pointer; border-radius: 50%;
+  }
+  .chip button:hover { background: #dbeafe; }
+  .empty { color: #94a3b8; font-size: 13px; font-style: italic; margin: 8px 0 0; }
+
+  .table-wrap { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; white-space: nowrap; }
+  th { background: #f8fafc; color: #334155; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #fbfdff; }
+  td input[type=number] { width: 90px; padding: 4px 6px; }
+  .mono { font-family: Consolas, "Courier New", monospace; }
+
+  .graph-svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 8px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 12.5px; color: #475569; }
+  .legend span.item { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid #94a3b8; }
+
+  .headline { max-width: 1300px; margin: 16px auto 0; }
+  .result-card {
+    background: linear-gradient(135deg, #eff6ff, #ffffff);
+    border: 2px solid #2563eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .result-card .big { font-size: 22px; font-weight: 700; color: #1e3a8a; }
+  .result-card .line { margin: 6px 0; font-size: 14.5px; }
+  .result-card .line b { color: #1e293b; }
+  .tag {
+    display: inline-block; background: #2563eb; color: #fff; border-radius: 6px;
+    padding: 1px 8px; font-size: 12px; font-weight: 700; margin-right: 6px;
+  }
+  .iteration { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 10px; background: #fff; }
+  .iteration .it-title { font-weight: 700; color: #1e3a8a; margin-bottom: 6px; }
+  .iteration ul { margin: 8px 0 0; padding-left: 20px; }
+  .iteration li { font-size: 13.5px; margin-bottom: 4px; color: #334155; }
+  .placeholder { color: #64748b; font-style: italic; font-size: 14px; }
+  .scroll-note { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Calculadora de Dijkstra</h1>
+  <p>Encuentra el camino más corto y comprende el procedimiento</p>
+</header>
+
+<div class="layout">
+
+  <!-- ================= COLUMNA IZQUIERDA: EDITOR ================= -->
+  <div>
+    <div class="card">
+      <h2>1. Nodos</h2>
+      <div class="row">
+        <div>
+          <label for="nodeName">Nombre del nodo</label>
+          <input type="text" id="nodeName" placeholder="Ej: A, B, Casa, Centro" maxlength="14">
+        </div>
+        <button id="btnAddNode">Agregar nodo</button>
+      </div>
+      <div class="msg" id="nodeMsg"></div>
+      <div class="chips" id="nodeList"></div>
+    </div>
+
+    <div class="card">
+      <h2>2. Conexiones</h2>
+      <label for="edgeFrom">Nodo origen</label>
+      <select id="edgeFrom"></select>
+      <label for="edgeTo">Nodo destino</label>
+      <select id="edgeTo"></select>
+      <label for="edgeWeight">Peso / distancia / costo</label>
+      <div class="row">
+        <input type="number" id="edgeWeight" step="any" min="0" placeholder="Ej: 4 o 2.5">
+        <button id="btnAddEdge">Agregar conexión</button>
+      </div>
+      <div class="msg" id="edgeMsg"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Conexión</th><th>Peso</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="edgeBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="edgeEmpty">Todavía no hay conexiones. Agrega dos nodos y crea una conexión.</p>
+    </div>
+
+    <div class="card">
+      <h2>3. Configuración</h2>
+      <label for="graphType">Tipo de grafo</label>
+      <select id="graphType">
+        <option value="undirected">Grafo no dirigido</option>
+        <option value="directed">Grafo dirigido</option>
+      </select>
+      <p class="hint" id="graphTypeHint">En un grafo no dirigido puedes recorrer cada conexión en ambos sentidos (A–B y B–A son la misma). En un grafo dirigido solo puedes ir en el sentido de la flecha.</p>
+
+      <label for="startSelect">Nodo inicial</label>
+      <select id="startSelect"></select>
+
+      <label for="targetSelect">Destino</label>
+      <select id="targetSelect"></select>
+
+      <div class="buttons-bar">
+        <button id="btnSolve">Resolver</button>
+        <button id="btnExample" class="secondary">Cargar ejemplo</button>
+        <button id="btnClear" class="secondary">Limpiar</button>
+      </div>
+      <div class="msg" id="solveMsg"></div>
+    </div>
+  </div>
+
+  <!-- ================= COLUMNA DERECHA: GRAFO ================= -->
+  <div>
+    <div class="card">
+      <h2>Representación del grafo</h2>
+      <svg id="graph" class="graph-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"></path>
+          </marker>
+          <marker id="arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"></path>
+          </marker>
+        </defs>
+      </svg>
+      <div class="legend">
+        <span class="item"><span class="swatch" style="background:#ffffff;border-color:#2563eb"></span> Nodo</span>
+        <span class="item"><span class="swatch" style="background:#2563eb;border-color:#1e40af"></span> Nodo inicial</span>
+        <span class="item"><span class="swatch" style="background:#16a34a;border-color:#15803d"></span> Ruta más corta</span>
+        <span class="item"><span class="swatch" style="background:#94a3b8;border-color:#64748b"></span> Conexión (con flecha si es dirigida)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESULTADOS Y PROCEDIMIENTO ================= -->
+<div class="headline">
+  <div class="card">
+    <h2>Resultados</h2>
+    <div id="cardArea"></div>
+    <div class="table-wrap" id="resultsArea"></div>
+  </div>
+
+  <div class="card">
+    <h2>Procedimiento por iteraciones</h2>
+    <div id="procedureArea"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------
+     ESTADO
+     --------------------------------------------------------------- */
+  var state = {
+    nodes: [],          // [{ id, name }]  -> el orden es el orden de inserción
+    edges: [],          // [{ id, from, to, weight }]
+    directed: false,
+    startId: null,
+    targetId: "",       // "" = Todos los nodos
+    result: null        // último cálculo válido
+  };
+
+  var nodeSeq = 0;
+  var edgeSeq = 0;
+
+  var R = 22;           // radio de los nodos
+  var VIEW_W = 800;
+  var VIEW_H = 600;
+
+  /* ---------------------------------------------------------------
+     UTILIDADES
+     --------------------------------------------------------------- */
+  function $(id) { return document.getElementById(id); }
+
+  function fmt(n) {
+    if (n === Infinity || !isFinite(n)) return "\u221E";
+    var r = Math.round(n * 1e6) / 1e6;
+    return String(r);
+  }
+
+  function nodeById(id) {
+    for (var i = 0; i < state.nodes.length; i++) {
+      if (state.nodes[i].id === id) return state.nodes[i];
+    }
+    return null;
+  }
+
+  function nameOf(id) {
+    var n = nodeById(id);
+    return n ? n.name : "?";
+  }
+
+  function setMsg(el, text, type) {
+    if (!text) { el.className = "msg"; el.textContent = ""; return; }
+    el.className = "msg " + (type || "info");
+    el.textContent = text;
+  }
+
+  /* ---------------------------------------------------------------
+     INVALIDACIÓN / CÁLCULO
+     --------------------------------------------------------------- */
+  function invalidate() {
+    state.result = null;
+    renderResults();
+    renderProcedure();
+  }
+
+  function addNode(name) {
+    name = name.trim();
+    if (!name) { setMsg($("nodeMsg"), "Escribe un nombre para el nodo.", "error"); return; }
+    var dup = state.nodes.some(function (n) {
+      return n.name.toLowerCase() === name.toLowerCase();
+    });
+    if (dup) { setMsg($("nodeMsg"), "Ya existe un nodo con ese nombre.", "error"); return; }
+    var id = "n" + (++nodeSeq);
+    state.nodes.push({ id: id, name: name });
+    if (state.startId === null) state.startId = id;
+    setMsg($("nodeMsg"), 'Nodo "' + name + '" agregado.', "ok");
+    invalidate();
+    renderAll();
+  }
+
+  function removeNode(id) {
+    state.nodes = state.nodes.filter(function (n) { return n.id !== id; });
+    state.edges = state.edges.filter(function (e) { return e.from !== id && e.to !== id; });
+    if (state.startId === id) state.startId = state.nodes.length ? state.nodes[0].id : null;
+    if (state.targetId === id) state.targetId = "";
+    invalidate();
+    renderAll();
+  }
+
+  function findDuplicate(from, to) {
+    for (var i = 0; i < state.edges.length; i++) {
+      var e = state.edges[i];
+      if (e.from === from && e.to === to) return e;
+      if (!state.directed && e.from === to && e.to === from) return e;
+    }
+    return null;
+  }
+
+  function addEdge(from, to, weight, silent) {
+    if (!from || !to) { if (!silent) setMsg($("edgeMsg"), "Selecciona origen y destino.", "error"); return false; }
+    if (from === to) { if (!silent) setMsg($("edgeMsg"), "No se permite una conexión de un nodo consigo mismo.", "error"); return false; }
+    var w = weight;
+    if (w === null || w === "" || isNaN(w)) { if (!silent) setMsg($("edgeMsg"), "El peso debe ser un número válido.", "error"); return false; }
+    if (w < 0) { if (!silent) setMsg($("edgeMsg"), "El peso no puede ser negativo. Usa 0 o un valor positivo.", "error"); return false; }
+    if (findDuplicate(from, to)) {
+      if (!silent) setMsg($("edgeMsg"), "Esa conexión ya existe. Edita su peso en la tabla o elimínala.", "error");
+      return false;
+    }
+    state.edges.push({ id: "e" + (++edgeSeq), from: from, to: to, weight: w });
+    if (!silent) setMsg($("edgeMsg"), "Conexión agregada.", "ok");
+    return true;
+  }
+
+  function updateWeight(id, value) {
+    var w = parseFloat(value);
+    if (value === "" || isNaN(w)) { setMsg($("edgeMsg"), "Peso no válido: escribe un número.", "error"); return; }
+    if (w < 0) { setMsg($("edgeMsg"), "El peso no puede ser negativo.", "error"); return; }
+    for (var i = 0; i < state.edges.length; i++) {
+      if (state.edges[i].id === id) state.edges[i].weight = w;
+    }
+    setMsg($("edgeMsg"), "Peso actualizado.", "ok");
+    invalidate();
+    renderGraph();
+  }
+
+  function removeEdge(id) {
+    state.edges = state.edges.filter(function (e) { return e.id !== id; });
+    invalidate();
+    renderAll();
+  }
+
+  function setGraphType(type) {
+    var wasDirected = state.directed;
+    state.directed = (type === "directed");
+    if (state.directed === false && wasDirected === true) {
+      // Al pasar de dirigido a no dirigido pueden aparecer duplicados A->B y B->A
+      var merged = 0;
+      var out = [];
+      for (var i = 0; i < state.edges.length; i++) {
+        var e = state.edges[i];
+        var found = null;
+        for (var j = 0; j < out.length; j++) {
+          var o = out[j];
+          if ((o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from)) { found = o; break; }
+        }
+        if (found) {
+          if (e.weight < found.weight) found.weight = e.weight;
+          merged++;
+        } else {
+          out.push(e);
+        }
+      }
+      state.edges = out;
+      if (merged > 0) {
+        setMsg($("edgeMsg"), "Se unificaron " + merged + " conexión(es) duplicada(s) al pasar a grafo no dirigido, conservando el menor peso.", "info");
+      }
+    }
+    invalidate();
+    renderAll();
+  }
+
+  /* ---------------------------------------------------------------
+     DIJKSTRA
+     --------------------------------------------------------------- */
+  function buildAdjacency() {
+    var adj = {};
+    state.nodes.forEach(function (n) { adj[n.id] = []; });
+    state.edges.forEach(function (e) {
+      if (adj[e.from]) adj[e.from].push({ id: e.to, weight: e.weight, edgeId: e.id });
+      if (!state.directed && adj[e.to]) adj[e.to].push({ id: e.from, weight: e.weight, edgeId: e.id });
+    });
+    return adj;
+  }
+
+  function dijkstra(startId) {
+    var nodes = state.nodes;
+    var adj = buildAdjacency();
+    var dist = {};
+    var prev = {};
+    var visited = {};
+
+    nodes.forEach(function (n) { dist[n.id] = Infinity; prev[n.id] = null; });
+    if (!nodeById(startId)) {
+      return { dist: dist, prev: prev, iterations: [], order: nodes.map(function (n) { return n.id; }) };
+    }
+    dist[startId] = 0;
+    var iterations = [];
+
+    while (true) {
+      // Elegir el nodo no procesado con menor distancia provisional.
+      // Empates: se recorre en orden de inserción, así gana el agregado antes.
+      var u = null;
+      var best = Infinity;
+      for (var i = 0; i < nodes.length; i++) {
+        var id = nodes[i].id;
+        if (!visited[id] && dist[id] < best) { best = dist[id]; u = id; }
+      }
+      if (u === null) break; // ya no quedan nodos alcanzables sin procesar
+
+      visited[u] = true;
+      var explanations = [];
+
+      // Evaluar vecinos
+      var neigh = adj[u] || [];
+      for (var k = 0; k < neigh.length; k++) {
+        var nb = neigh[k];
+        if (visited[nb.id]) continue;
+        var alt = dist[u] + nb.weight;
+        if (alt < dist[nb.id]) {
+          var anterior = dist[nb.id];
+          explanations.push(
+            "Desde " + nameOf(u) + ", llegar a " + nameOf(nb.id) + " cuesta " +
+            fmt(dist[u]) + " + " + fmt(nb.weight) + " = " + fmt(alt) + ". Como " + fmt(alt) +
+            " es menor que " + fmt(anterior) + ", la distancia de " + nameOf(nb.id) +
+            " se actualiza a " + fmt(alt) + " y su predecesor es " + nameOf(u) + "."
+          );
+          dist[nb.id] = alt;
+          prev[nb.id] = u;
+        }
+      }
+
+      // Snapshot de distancias tras evaluar vecinos
+      var snap = {};
+      nodes.forEach(function (n) { snap[n.id] = dist[n.id]; });
+
+      iterations.push({
+        num: iterations.length + 1,
+        chosen: u,
+        processed: nodes.filter(function (n) { return visited[n.id]; }).map(function (n) { return n.id; }),
+        dist: snap,
+        explanations: explanations
+      });
+    }
+
+    return { dist: dist, prev: prev, iterations: iterations, order: nodes.map(function (n) { return n.id; }) };
+  }
+
+  function buildPath(prev, targetId) {
+    var path = [];
+    var seen = {};
+    var cur = targetId;
+    while (cur !== null && cur !== undefined) {
+      if (seen[cur]) break; // evita ciclos
+      seen[cur] = true;
+      path.unshift(cur);
+      cur = prev[cur];
+    }
+    return path;
+  }
+
+  function pathUsingEdge(prev, targetId) {
+    // Devuelve la lista de ids de conexión que forman la ruta hacia targetId
+    var path = buildPath(prev, targetId);
+    var edgeIds = [];
+    for (var i = 0; i + 1 < path.length; i++) {
+      var a = path[i], b = path[i + 1];
+      for (var j = 0; j < state.edges.length; j++) {
+        var e = state.edges[j];
+        if (e.from === a && e.to === b) { edgeIds.push(e.id); break; }
+        if (!state.directed && e.from === b && e.to === a) { edgeIds.push(e.id); break; }
+      }
+    }
+    return { path: path, edgeIds: edgeIds };
+  }
+
+  /* ---------------------------------------------------------------
+     RESOLVER
+     --------------------------------------------------------------- */
+  function solve() {
+    if (state.nodes.length === 0) { setMsg($("solveMsg"), "Agrega al menos un nodo antes de resolver.", "error"); return; }
+    if (!nodeById(state.startId)) { setMsg($("solveMsg"), "Selecciona un nodo inicial válido.", "error"); return; }
+
+    var res = dijkstra(state.startId);
+    res.startId = state.startId;
+    state.result = res;
+
+    setMsg($("solveMsg"), "Resultados calculados desde " + nameOf(state.startId) + ".", "ok");
+    renderResults();
+    renderProcedure();
+    renderGraph();
+  }
+
+  /* ---------------------------------------------------------------
+     RENDER: LISTAS Y SELECTS
+     --------------------------------------------------------------- */
+  function fillNodeSelect(sel, includeNone) {
+    var prev = sel.value;
+    sel.innerHTML = "";
+    if (includeNone) {
+      var opt = document.createElement("option");
+      opt.value = ""; opt.textContent = "Todos los nodos";
+      sel.appendChild(opt);
+    }
+    state.nodes.forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n.id; o.textContent = n.name;
+      sel.appendChild(o);
+    });
+    // restaurar valor si sigue existiendo
+    var stillThere = false;
+    for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === prev) stillThere = true;
+    if (stillThere) sel.value = prev;
+  }
+
+  function renderNodes() {
+    var box = $("nodeList");
+    box.innerHTML = "";
+    if (state.nodes.length === 0) {
+      var p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = "No hay nodos todavía.";
+      box.appendChild(p);
+      return;
+    }
+    state.nodes.forEach(function (n) {
+      var chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = n.name;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.title = "Eliminar nodo";
+      b.textContent = "\u00D7";
+      b.addEventListener("click", function () { removeNode(n.id); });
+      chip.appendChild(b);
+      box.appendChild(chip);
+    });
+  }
+
+  function renderEdges() {
+    var body = $("edgeBody");
+    body.innerHTML = "";
+    $("edgeEmpty").style.display = state.edges.length ? "none" : "block";
+
+    state.edges.forEach(function (e) {
+      var tr = document.createElement("tr");
+
+      var td1 = document.createElement("td");
+      td1.className = "mono";
+      td1.textContent = nameOf(e.from) + (state.directed ? " \u2192 " : " \u2013 ") + nameOf(e.to);
+      tr.appendChild(td1);
+
+      var td2 = document.createElement("td");
+      var inp = document.createElement("input");
+      inp.type = "number"; inp.step = "any"; inp.min = "0"; inp.value = e.weight;
+      inp.addEventListener("change", function () { updateWeight(e.id, inp.value); });
+      td2.appendChild(inp);
+      tr.appendChild(td2);
+
+      var td3 = document.createElement("td");
+      var del = document.createElement("button");
+      del.className = "danger"; del.type = "button"; del.textContent = "Eliminar";
+      del.addEventListener("click", function () { removeEdge(e.id); });
+      td3.appendChild(del);
+      tr.appendChild(td3);
+
+      body.appendChild(tr);
+    });
+  }
+
+  function renderSelects() {
+    var ef = $("edgeFrom"), et = $("edgeTo");
+    var prevFrom = ef.value, prevTo = et.value;
+    fillNodeSelect(ef, false);
+    fillNodeSelect(et, false);
+    var restore = function (sel, val) {
+      for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === val) { sel.value = val; return; }
+    };
+    restore(ef, prevFrom);
+    restore(et, prevTo);
+    if (et.options.length > 1 && et.value === ef.value) et.selectedIndex = 1;
+
+    var start = $("startSelect");
+    fillNodeSelect(start, false);
+    if (nodeById(state.startId)) start.value = state.startId;
+    else if (state.nodes.length) { state.startId = state.nodes[0].id; start.value = state.startId; }
+
+    var target = $("targetSelect");
+    fillNodeSelect(target, true);
+    if (state.targetId === "" ) target.value = "";
+    else restore(target, state.targetId);
+  }
+
+  /* ---------------------------------------------------------------
+     RENDER: GRAFO SVG
+     --------------------------------------------------------------- */
+  function computePositions() {
+    var pos = {};
+    var n = state.nodes.length;
+    var cx = VIEW_W / 2, cy = VIEW_H / 2;
+    var r = Math.min(VIEW_W, VIEW_H) / 2 - 80;
+    if (n === 1) {
+      pos[state.nodes[0].id] = { x: cx, y: cy };
+    } else {
+      for (var i = 0; i < n; i++) {
+        var ang = -Math.PI / 2 + (i * 2 * Math.PI / n);
+        pos[state.nodes[i].id] = { x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang) };
+      }
+    }
+    return pos;
+  }
+
+  function renderGraph() {
+    var svg = $("graph");
+    var pos = computePositions();
+
+    // Ruta resaltada (si hay resultado y un destino específico)
+    var hiEdges = {}, hiNodes = {};
+    if (state.result && state.targetId) {
+      var info = pathUsingEdge(state.result.prev, state.targetId);
+      if (isFinite(state.result.dist[state.targetId])) {
+        info.edgeIds.forEach(function (id) { hiEdges[id] = true; });
+        info.path.forEach(function (id) { hiNodes[id] = true; });
+      }
+    }
+
+    var parts = [];
+    parts.push('<defs>');
+    parts.push('<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker>');
+    parts.push('<marker id="arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>');
+    parts.push('</defs>');
+
+    // Conexiones
+    state.edges.forEach(function (e) {
+      var p1 = pos[e.from], p2 = pos[e.to];
+      if (!p1 || !p2) return;
+      var reverse = null;
+      for (var i = 0; i < state.edges.length; i++) {
+        var o = state.edges[i];
+        if (o !== e && o.from === e.to && o.to === e.from) { reverse = o; break; }
+      }
+      var dx = p2.x - p1.x, dy = p2.y - p1.y;
+      var len = Math.hypot(dx, dy) || 1;
+      var ux = dx / len, uy = dy / len;
+      var x1 = p1.x + ux * R, y1 = p1.y + uy * R;
+      var x2 = p2.x - ux * R, y2 = p2.y - uy * R;
+      var hi = !!hiEdges[e.id];
+      var color = hi ? "#16a34a" : "#94a3b8";
+      var width = hi ? 4 : 2;
+
+      var d, mx, my;
+      if (reverse) {
+        var perpx = -uy, perpy = ux, k = 32;
+        var cxp = (x1 + x2) / 2 + perpx * k;
+        var cyp = (y1 + y2) / 2 + perpy * k;
+        d = "M " + x1 + " " + y1 + " Q " + cxp + " " + cyp + " " + x2 + " " + y2;
+        mx = 0.25 * x1 + 0.5 * cxp + 0.25 * x2;
+        my = 0.25 * y1 + 0.5 * cyp + 0.25 * y2;
+      } else {
+        d = "M " + x1 + " " + y1 + " L " + x2 + " " + y2;
+        mx = (x1 + x2) / 2;
+        my = (y1 + y2) / 2;
+      }
+
+      var marker = "";
+      if (state.directed) marker = ' marker-end="url(#' + (hi ? "arrowHi" : "arrow") + ')"';
+      parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + width + '"' + marker + '/>');
+
+      // etiqueta del peso con borde blanco para legibilidad
+      var lx = mx, ly = my;
+      if (!reverse) {
+        // desplazar la etiqueta perpendicular para no tapar la línea
+        lx = mx + (-uy) * 11;
+        ly = my + (ux) * 11;
+      }
+      parts.push('<text x="' + lx + '" y="' + ly + '" text-anchor="middle" dominant-baseline="middle" ' +
+        'font-size="13" font-weight="700" fill="' + (hi ? "#15803d" : "#475569") + '" ' +
+        'style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">' + fmt(e.weight) + '</text>');
+    });
+
+    // Nodos
+    state.nodes.forEach(function (n) {
+      var p = pos[n.id];
+      var isStart = (n.id === state.startId);
+      var isHi = !!hiNodes[n.id];
+      var fill = isHi ? "#16a34a" : (isStart ? "#2563eb" : "#ffffff");
+      var stroke = isHi ? "#15803d" : "#2563eb";
+      var textFill = (isHi || isStart) ? "#ffffff" : "#1e293b";
+      if (isStart) {
+        parts.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + (R + 6) + '" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 4"/>');
+      }
+      parts.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + R + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="2"/>');
+      parts.push('<text x="' + p.x + '" y="' + p.y + '" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="' + textFill + '">' + escapeXml(n.name) + '</text>');
+    });
+
+    if (state.nodes.length === 0) {
+      parts.push('<text x="' + (VIEW_W / 2) + '" y="' + (VIEW_H / 2) + '" text-anchor="middle" fill="#94a3b8" font-size="16">Agrega nodos para ver el grafo</text>');
+    }
+
+    svg.innerHTML = parts.join("");
+  }
+
+  function escapeXml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /* ---------------------------------------------------------------
+     RENDER: RESULTADOS
+     --------------------------------------------------------------- */
+  function renderResults() {
+    var cardArea = $("cardArea");
+    var resultsArea = $("resultsArea");
+    cardArea.innerHTML = "";
+    resultsArea.innerHTML = "";
+
+    if (!state.result) {
+      resultsArea.innerHTML = '<p class="placeholder">Presiona "Resolver" para calcular los caminos más cortos.</p>';
+      return;
+    }
+
+    var res = state.result;
+    var startName = nameOf(res.startId);
+
+    // Tarjeta destacada si hay un destino específico
+    if (state.targetId) {
+      var d = res.dist[state.targetId];
+      var reachable = isFinite(d);
+      var info = pathUsingEdge(res.prev, state.targetId);
+      var pathTxt = reachable ? info.path.map(nameOf).join(" \u2192 ") : "Sin ruta";
+      var weightsTxt = "";
+      if (reachable && info.path.length >= 2) {
+        var parts = [];
+        for (var i = 0; i + 1 < info.path.length; i++) {
+          var a = info.path[i], b = info.path[i + 1];
+          var w = null;
+          for (var j = 0; j < state.edges.length; j++) {
+            var e = state.edges[j];
+            if (e.from === a && e.to === b) { w = e.weight; break; }
+            if (!state.directed && e.from === b && e.to === a) { w = e.weight; break; }
+          }
+          parts.push(nameOf(a) + (state.directed ? "\u2192" : "\u2013") + nameOf(b) + " (" + fmt(w) + ")");
+        }
+        weightsTxt = parts.join(", ");
+      }
+      var nameEl = document.createElement("div");
+      nameEl.innerHTML =
+        '<div class="big">' + escapeXml(startName) + ' \u2192 ' + escapeXml(nameOf(state.targetId)) + ' = ' +
+        (reachable ? fmt(d) : "Sin ruta") + '</div>' +
+        (reachable
+          ? '<div class="line"><span class="tag">Ruta</span><b>' + escapeXml(pathTxt) + '</b></div>' +
+            (weightsTxt ? '<div class="line"><span class="tag">Conexiones</span>' + escapeXml(weightsTxt) + '</div>' : "") +
+            '<div class="line"><span class="tag">Suma de pesos</span><b>' + fmt(d) + '</b></div>' +
+            '<div class="line"><span class="tag">Costo total</span><b>' + fmt(d) + '</b></div>'
+          : '<div class="line">No existe un camino desde <b>' + escapeXml(startName) + '</b> hasta <b>' + escapeXml(nameOf(state.targetId)) + '</b>.</div>');
+      cardArea.appendChild(nameEl);
+    }
+
+    // Tabla general de resultados (todos los nodos, en orden de inserción)
+    var html = '<table><thead><tr><th>Nodo destino</th><th>Distancia mínima</th><th>Ruta</th></tr></thead><tbody>';
+    res.order.forEach(function (id) {
+      var d = res.dist[id];
+      var reachable = isFinite(d);
+      var pathTxt = reachable ? buildPath(res.prev, id).map(nameOf).join(" \u2192 ") : "Sin ruta";
+      html += '<tr' + (id === state.targetId ? ' style="background:#eff6ff"' : '') + '>' +
+        '<td><b>' + escapeXml(nameOf(id)) + '</b>' + (id === state.startId ? " <span style=\"color:#2563eb\">(inicio)</span>" : "") + '</td>' +
+        '<td class="mono">' + (reachable ? fmt(d) : "Sin ruta") + '</td>' +
+        '<td class="mono">' + escapeXml(pathTxt) + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+    resultsArea.innerHTML = html;
+  }
+
+  /* ---------------------------------------------------------------
+     RENDER: PROCEDIMIENTO
+     --------------------------------------------------------------- */
+  function renderProcedure() {
+    var area = $("procedureArea");
+    if (!state.result) {
+      area.innerHTML = '<p class="placeholder">El procedimiento aparecerá aquí después de presionar "Resolver".</p>';
+      return;
+    }
+    var res = state.result;
+
+    var html = '<div class="table-wrap"><table><thead><tr><th>Iteración</th><th>Nodo elegido</th><th>Nodos procesados</th>';
+    res.order.forEach(function (id) { html += '<th>' + escapeXml(nameOf(id)) + '</th>'; });
+    html += '</tr></thead><tbody>';
+
+    res.iterations.forEach(function (it) {
+      html += '<tr>' +
+        '<td class="mono">' + it.num + '</td>' +
+        '<td><b>' + escapeXml(nameOf(it.chosen)) + '</b></td>' +
+        '<td class="mono">' + escapeXml(it.processed.map(nameOf).join(", ")) + '</td>';
+      res.order.forEach(function (id) {
+        var v = it.dist[id];
+        html += '<td class="mono">' + (isFinite(v) ? fmt(v) : "\u221E") + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<p class="scroll-note">Las columnas muestran la distancia provisional a cada nodo después de evaluar los vecinos. \u221E significa distancia infinita (aún desconocida).</p>';
+
+    if (res.iterations.length === 0) {
+      area.innerHTML = '<p class="placeholder">No hay iteraciones que mostrar.</p>';
+      return;
+    }
+
+    // Detalle por iteración con explicaciones
+    html += '<h3>Explicación de cada iteración</h3>';
+    res.iterations.forEach(function (it) {
+      html += '<div class="iteration">';
+      html += '<div class="it-title">Iteración ' + it.num + ': se elige el nodo ' + escapeXml(nameOf(it.chosen)) + '</div>';
+      html += '<div style="font-size:13px;color:#475569">Nodos procesados: <span class="mono">' + escapeXml(it.processed.map(nameOf).join(", ")) + '</span></div>';
+      if (it.explanations.length === 0) {
+        html += '<ul><li>No hubo actualizaciones de distancia en esta iteración.</li></ul>';
+      } else {
+        html += '<ul>';
+        it.explanations.forEach(function (t) { html += '<li>' + escapeXml(t) + '</li>'; });
+        html += '</ul>';
+      }
+      html += '</div>';
+    });
+
+    area.innerHTML = html;
+  }
+
+  /* ---------------------------------------------------------------
+     RENDER GENERAL
+     --------------------------------------------------------------- */
+  function renderAll() {
+    renderNodes();
+    renderEdges();
+    renderSelects();
+    renderGraph();
+    renderResults();
+    renderProcedure();
+  }
+
+  /* ---------------------------------------------------------------
+     EJEMPLO Y LIMPIAR
+     --------------------------------------------------------------- */
+  function loadExample() {
+    state.nodes = [];
+    state.edges = [];
+    nodeSeq = 0; edgeSeq = 0;
+    state.directed = false;
+    state.targetId = "";
+    $("graphType").value = "undirected";
+
+    var defs = [["A", 0, 0], ["B", 0, 0], ["C", 0, 0], ["D", 0, 0], ["E", 0, 0]];
+    var ids = {};
+    defs.forEach(function (d) {
+      var id = "n" + (++nodeSeq);
+      ids[d[0]] = id;
+      state.nodes.push({ id: id, name: d[0] });
+    });
+    state.startId = ids["A"];
+
+    var edges = [
+      ["A", "B", 4], ["A", "C", 2], ["C", "B", 1],
+      ["B", "D", 5], ["C", "D", 8], ["C", "E", 10], ["D", "E", 2]
+    ];
+    edges.forEach(function (e) {
+      state.edges.push({ id: "e" + (++edgeSeq), from: ids[e[0]], to: ids[e[1]], weight: e[2] });
+    });
+
+    setMsg($("nodeMsg"), "", "");
+    setMsg($("edgeMsg"), "", "");
+    setMsg($("solveMsg"), "Ejemplo cargado (grafo no dirigido, inicio A). Presiona Resolver.", "info");
+    invalidate();
+    renderAll();
+  }
+
+  function clearAll() {
+    state.nodes = [];
+    state.edges = [];
+    nodeSeq = 0; edgeSeq = 0;
+    state.directed = false;
+    state.startId = null;
+    state.targetId = "";
+    $("graphType").value = "undirected";
+    setMsg($("nodeMsg"), "", "");
+    setMsg($("edgeMsg"), "", "");
+    setMsg($("solveMsg"), "Datos eliminados. Agrega nodos para empezar.", "info");
+    invalidate();
+    renderAll();
+  }
+
+  /* ---------------------------------------------------------------
+     EVENTOS
+     --------------------------------------------------------------- */
+  $("btnAddNode").addEventListener("click", function () {
+    addNode($("nodeName").value);
+    $("nodeName").value = "";
+    $("nodeName").focus();
+  });
+  $("nodeName").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); $("btnAddNode").click(); }
+  });
+
+  $("btnAddEdge").addEventListener("click", function () {
+    var from = $("edgeFrom").value;
+    var to = $("edgeTo").value;
+    var raw = $("edgeWeight").value;
+    var w = raw === "" ? null : parseFloat(raw);
+    if (addEdge(from, to, w, false)) {
+      $("edgeWeight").value = "";
+      invalidate();
+      renderAll();
+    }
+  });
+  $("edgeWeight").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); $("btnAddEdge").click(); }
+  });
+
+  $("graphType").addEventListener("change", function () {
+    setGraphType($("graphType").value);
+  });
+
+  $("startSelect").addEventListener("change", function () {
+    state.startId = $("startSelect").value || null;
+    invalidate();
+    renderGraph();
+  });
+
+  $("targetSelect").addEventListener("change", function () {
+    state.targetId = $("targetSelect").value;
+    // Solo cambia el destino: se reaprovecha el último cálculo válido
+    renderResults();
+    renderGraph();
+  });
+
+  $("btnSolve").addEventListener("click", solve);
+  $("btnExample").addEventListener("click", loadExample);
+  $("btnClear").addEventListener("click", clearAll);
+
+  /* ---------------------------------------------------------------
+     ARRANQUE
+     --------------------------------------------------------------- */
+  loadExample();
+})();
+</script>
+</body>
+</html>
